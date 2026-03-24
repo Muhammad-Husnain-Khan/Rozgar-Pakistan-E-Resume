@@ -1,5 +1,5 @@
-# ReactJS Integration, Node.js & CRUD Operations
-## Rozgar Pakistan - E-Resume Builder
+# Rozgar Pakistan - E-Resume Builder
+## ReactJS Integration, Node.js & CRUD Operations
 
 ---
 
