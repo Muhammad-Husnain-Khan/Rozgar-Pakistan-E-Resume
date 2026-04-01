@@ -170,7 +170,14 @@ app.post('/api/addExp', async (req, res) => {
             .input('CompanyName', sql.VarChar(100), CompanyName)
             .input('YearsWorked', sql.Int, YearsWorked)
             .execute('sp_AddExperience');
-        
+            
+        const status = result.returnValue; // Get the return value from the stored procedure
+        if(status == -1) {
+            return res.status(400).json({
+                success: false,
+                message: 'The Job Title and Company Name combination already exists.'
+            });
+        }
         res.json({
             success: true,
             message: 'Experience added successfully!',
