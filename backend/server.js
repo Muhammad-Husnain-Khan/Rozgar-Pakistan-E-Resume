@@ -29,8 +29,8 @@ app.use(express.json());
 
 const dbConfig = {
     user: 'sa',                     // Change to your SQL username
-    password: '123',                // Change to your SQL password
-    server: 'localhost',            // Change if using different server
+    password: 'Husnain_0335',                // Change to your SQL password
+    server: 'Husnain-Laptop',            // Change if using different server
     // server: 'localhost\\SQLEXPRESS', // Uncomment for SQL Express
     database: 'RozgarDB',
     options: {
