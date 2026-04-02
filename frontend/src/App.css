@@ -113,6 +113,79 @@ body {
     transform: none;
 }
 
+/* ============================================
+   TOGGLE LINK STYLES
+   ============================================ */
+
+.toggle-text {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 14px;
+}
+
+.toggle-link {
+    color: #1e5128;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.toggle-link:hover {
+    color: #4e9f3d;
+    text-decoration: underline;
+}
+
+/* ============================================
+   PASSWORD STRENGTH INDICATOR
+   ============================================ */
+
+.password-strength {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.strength-bar {
+    flex: 1;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.password-strength.weak .strength-bar {
+    background: linear-gradient(90deg, #dc3545 50%, #e0e0e0 50%);
+}
+
+.password-strength.medium .strength-bar {
+    background: linear-gradient(90deg, #ffc107 50%, #e0e0e0 50%);
+}
+
+.password-strength.strong .strength-bar {
+    background: linear-gradient(90deg, #28a745 50%, #e0e0e0 50%);
+}
+
+.strength-label {
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 50px;
+}
+
+.password-strength.weak .strength-label {
+    color: #dc3545;
+}
+
+.password-strength.medium .strength-label {
+    color: #ffc107;
+}
+
+.password-strength.strong .strength-label {
+    color: #28a745;
+}
+
 .btn-logout {
     background: rgba(255, 255, 255, 0.2);
     color: white;

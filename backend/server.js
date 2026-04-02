@@ -125,6 +125,49 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// ----- SIGNUP API -----
+app.post('/api/signup', async (req, res) => {
+    try {
+        const { FullName, Email, Password } = req.body;
+        
+        if (!FullName || !Email || !Password) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+        
+        const result = await pool.request()
+            .input('FullName', sql.VarChar(100), FullName)
+            .input('Email', sql.VarChar(100), Email)
+            .input('Password', sql.VarChar(100), Password)
+            .execute('sp_SignupUser');
+        
+        const returnValue = result.returnValue;
+        
+        if (returnValue === -1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email already exists'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Account created successfully! Please login.',
+            user: result.recordset[0]
+        });
+        
+    } catch (err) {
+        console.error('Signup error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during signup',
+            error: err.message
+        });
+    }
+});
+
 // ----- GET EXPERIENCE API (Task 2 - READ) -----
 app.get('/api/getExp/:userId', async (req, res) => {
     try {

@@ -65,6 +65,35 @@ END;
 GO
 
 -- ============================================================================
+--  sp_SignupUser Stored Procedure
+-- ============================================================================
+
+CREATE PROCEDURE sp_SignupUser
+    @FullName VARCHAR(100),
+    @Email VARCHAR(100),
+    @Password VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (
+        SELECT 1 FROM Users WHERE Email = @Email
+    )
+    BEGIN
+        SELECT -1 AS ReturnValue;
+        RETURN -1;
+    END
+    INSERT INTO Users (FullName, Email, PasswordHash)
+    VALUES (@FullName, @Email, @Password);
+    SELECT UserID, FullName, Email, CreatedAt
+    FROM Users WHERE UserID = SCOPE_IDENTITY();
+    SELECT 1 AS ReturnValue;
+    RETURN 1;
+END
+GO
+
+
+
+-- ============================================================================
 -- TEST THE PROCEDURE
 -- ============================================================================
 

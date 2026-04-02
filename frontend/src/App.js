@@ -13,10 +13,33 @@ import './App.css';
 // ============================================================================
 
 function Login({ onLogin }) {
+    const [isSignup, setIsSignup] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Signup states
+    const [fullName, setFullName] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [signupSuccess, setSignupSuccess] = useState(false);
+
+    const getPasswordStrength = (pwd) => {
+        if (!pwd) return { strength: '', label: '' };
+        if (pwd.length < 6) return { strength: 'weak', label: 'Weak' };
+        if (pwd.length >= 6 && pwd.length <= 10 && !/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+            return { strength: 'medium', label: 'Medium' };
+        }
+        if (pwd.length > 10 && /[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+            return { strength: 'strong', label: 'Strong' };
+        }
+        if (pwd.length > 10 || /[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+            return { strength: 'medium', label: 'Medium' };
+        }
+        return { strength: 'weak', label: 'Weak' };
+    };
+
+    const passwordStrength = getPasswordStrength(password);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -39,7 +62,7 @@ function Login({ onLogin }) {
             const data = await response.json();
             
             if (data.success) {
-                onLogin(data.user);  // Pass user to parent
+                onLogin(data.user);
             } else {
                 setMessage(data.message || 'Login failed');
             }
@@ -50,45 +73,170 @@ function Login({ onLogin }) {
         }
     };
 
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        
+        if (!fullName || !email || !password || !confirmPassword) {
+            setMessage('All fields are required');
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            setMessage('Passwords do not match');
+            return;
+        }
+        
+        if (passwordStrength.strength === 'weak') {
+            setMessage('Password is too weak');
+            return;
+        }
+        
+        setIsLoading(true);
+        setMessage('');
+        
+        try {
+            const response = await fetch('http://localhost:5000/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ FullName: fullName, Email: email, Password: password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                setSignupSuccess(true);
+                setFullName('');
+                setEmail('');
+                setPassword('');
+                setConfirmPassword('');
+                setTimeout(() => {
+                    setIsSignup(false);
+                    setSignupSuccess(false);
+                }, 2000);
+            } else {
+                setMessage(data.message || 'Signup failed');
+            }
+        } catch (error) {
+            setMessage('Cannot connect to server. Is backend running on port 5000?');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const toggleMode = () => {
+        setIsSignup(!isSignup);
+        setMessage('');
+        setEmail('');
+        setPassword('');
+        setFullName('');
+        setConfirmPassword('');
+        setSignupSuccess(false);
+    };
+
     return (
         <div className="login-page">
             <div className="login-container">
                 <h1>Rozgar Pakistan</h1>
                 <p className="subtitle">E-Resume Builder Portal</p>
                 
-                <form onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label>Email Address</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter your email"
-                        />
-                    </div>
-                    
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                        />
-                    </div>
-                    
-                    <button type="submit" disabled={isLoading} className="btn-login">
-                        {isLoading ? 'Logging in...' : 'Login'}
-                    </button>
-                    
-                    {message && <p className="message error">{message}</p>}
-                </form>
-                
-                <div className="demo-info">
-                    <p><strong>Demo Credentials:</strong></p>
-                    <p>Email: ali.raza@email.com</p>
-                    <p>Password: password123</p>
-                </div>
+                {isSignup ? (
+                    <form onSubmit={handleSignup}>
+                        <div className="form-group">
+                            <label>Full Name</label>
+                            <input
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                placeholder="Enter your full name"
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>Email Address</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Create a password"
+                            />
+                            {password && (
+                                <div className={`password-strength ${passwordStrength.strength}`}>
+                                    <span className="strength-bar"></span>
+                                    <span className="strength-label">{passwordStrength.label}</span>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>Confirm Password</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Confirm your password"
+                            />
+                        </div>
+                        
+                        <button type="submit" disabled={isLoading} className="btn-login">
+                            {isLoading ? 'Creating Account...' : 'Sign Up'}
+                        </button>
+                        
+                        {signupSuccess && <p className="message success">Account created! Please login.</p>}
+                        {message && <p className="message error">{message}</p>}
+                        
+                        <p className="toggle-text">
+                            Already have an account? <span className="toggle-link" onClick={toggleMode}>Login</span>
+                        </p>
+                    </form>
+                ) : (
+                    <form onSubmit={handleLogin}>
+                        <div className="form-group">
+                            <label>Email Address</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                            />
+                        </div>
+                        
+                        <button type="submit" disabled={isLoading} className="btn-login">
+                            {isLoading ? 'Logging in...' : 'Login'}
+                        </button>
+                        
+                        {message && <p className="message error">{message}</p>}
+                        
+                        <p className="toggle-text">
+                            Don't have an account? <span className="toggle-link" onClick={toggleMode}>Sign Up</span>
+                        </p>
+                        
+                        <div className="demo-info">
+                            <p><strong>Demo Credentials:</strong></p>
+                            <p>Email: ali.raza@email.com</p>
+                            <p>Password: password123</p>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     );
