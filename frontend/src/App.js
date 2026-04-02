@@ -464,13 +464,18 @@ function Dashboard({ user, onLogout }) {
 // ============================================================================
 
 function App() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const savedUser = sessionStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
     const handleLogin = (userData) => {
+        sessionStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
     };
 
     const handleLogout = () => {
+        sessionStorage.removeItem('user');
         setUser(null);
     };
 
