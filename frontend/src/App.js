@@ -149,10 +149,10 @@ function AddExperienceForm({ userId, onSave }) {
     const [jobTitle, setJobTitle] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [yearsWorked, setYearsWorked] = useState('');
+    const [isCurrentJob, setIsCurrentJob] = useState(false);
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // handleSave function (Task 8)
     const handleSave = async () => {
         if (!jobTitle || !companyName || !yearsWorked) {
             setMessage('Please fill in all fields');
@@ -170,7 +170,8 @@ function AddExperienceForm({ userId, onSave }) {
                     UserID: userId,
                     JobTitle: jobTitle,
                     CompanyName: companyName,
-                    YearsWorked: parseInt(yearsWorked)
+                    YearsWorked: parseInt(yearsWorked),
+                    IsCurrentJob: isCurrentJob
                 })
             });
             
@@ -182,7 +183,8 @@ function AddExperienceForm({ userId, onSave }) {
                 setJobTitle('');
                 setCompanyName('');
                 setYearsWorked('');
-                onSave();  // Refresh the list
+                setIsCurrentJob(false);
+                onSave();
             } else {
                 setMessage('Error: ' + result.message);
             }
@@ -217,11 +219,135 @@ function AddExperienceForm({ userId, onSave }) {
                     min="1"
                     max="50"
                 />
+                <label className="checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={isCurrentJob}
+                        onChange={(e) => setIsCurrentJob(e.target.checked)}
+                    />
+                    Current Job
+                </label>
                 <button onClick={handleSave} disabled={isSubmitting} className="btn-add">
                     {isSubmitting ? 'Saving...' : 'Add Experience'}
                 </button>
             </div>
             {message && <p className={`message ${message.includes('Error') ? 'error' : 'success'}`}>{message}</p>}
+        </div>
+    );
+}
+
+// ============================================================================
+// EDIT EXPERIENCE MODAL COMPONENT
+// ============================================================================
+
+function EditExperienceModal({ job, onClose, onSave }) {
+    const [jobTitle, setJobTitle] = useState(job ? job.JobTitle : '');
+    const [companyName, setCompanyName] = useState(job ? job.CompanyName : '');
+    const [yearsWorked, setYearsWorked] = useState(job ? job.YearsWorked : '');
+    const [isCurrentJob, setIsCurrentJob] = useState(job ? job.IsCurrentJob : false);
+    const [message, setMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    if (!job) return null;
+
+    const handleSave = async () => {
+        if (!jobTitle || !companyName || !yearsWorked) {
+            setMessage('Please fill in all fields');
+            return;
+        }
+        
+        setIsSubmitting(true);
+        setMessage('');
+        
+        try {
+            const response = await fetch(`http://localhost:5000/api/updateExp/${job.ExpID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    JobTitle: jobTitle,
+                    CompanyName: companyName,
+                    YearsWorked: parseInt(yearsWorked),
+                    IsCurrentJob: isCurrentJob
+                })
+            });
+            
+            const result = await response.json();
+            console.log('Update result:', result);
+            
+            if (result.success) {
+                onSave();
+            } else {
+                setMessage('Error: ' + result.message);
+            }
+        } catch (error) {
+            setMessage('Failed to update experience');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleBackdropClick = (e) => {
+        if (e.target.className === 'modal-overlay') {
+            onClose();
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={handleBackdropClick}>
+            <div className="modal-content">
+                <div className="modal-header">
+                    <h3>Edit Experience</h3>
+                    <button className="modal-close" onClick={onClose}>&times;</button>
+                </div>
+                <div className="modal-body">
+                    <div className="form-group">
+                        <label>Job Title</label>
+                        <input
+                            type="text"
+                            value={jobTitle}
+                            onChange={(e) => setJobTitle(e.target.value)}
+                            placeholder="Job Title"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Company Name</label>
+                        <input
+                            type="text"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            placeholder="Company Name"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Years Worked</label>
+                        <input
+                            type="number"
+                            value={yearsWorked}
+                            onChange={(e) => setYearsWorked(e.target.value)}
+                            placeholder="Years Worked"
+                            min="1"
+                            max="50"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={isCurrentJob}
+                                onChange={(e) => setIsCurrentJob(e.target.checked)}
+                            />
+                            Current Job
+                        </label>
+                    </div>
+                    {message && <p className={`message ${message.includes('Error') ? 'error' : 'success'}`}>{message}</p>}
+                </div>
+                <div className="modal-footer">
+                    <button className="btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="btn-save" onClick={handleSave} disabled={isSubmitting}>
+                        {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
@@ -233,8 +359,8 @@ function AddExperienceForm({ userId, onSave }) {
 function Dashboard({ user, onLogout }) {
     const [experience, setExperience] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingJob, setEditingJob] = useState(null);
 
-    // useEffect to fetch data (Task 7)
     useEffect(() => {
         fetchExperience();
     }, [user.UserID]);
@@ -266,42 +392,24 @@ function Dashboard({ user, onLogout }) {
             const result = await response.json();
             
             if (result.success) {
-                fetchExperience();  // Refresh list
+                fetchExperience();
             }
         } catch (error) {
             console.error('Delete error:', error);
         }
     };
 
-    const handleEdit = async (job) => {
-        const newTitle = prompt('Enter new job title:', job.JobTitle);
-        if (!newTitle) return;
-        
-        const newCompany = prompt('Enter new company:', job.CompanyName);
-        if (!newCompany) return;
-        
-        const newYears = prompt('Enter years worked:', job.YearsWorked);
-        if (!newYears) return;
-        
-        try {
-            const response = await fetch(`http://localhost:5000/api/updateExp/${job.ExpID}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    JobTitle: newTitle,
-                    CompanyName: newCompany,
-                    YearsWorked: parseInt(newYears),
-                    IsCurrentJob: job.IsCurrentJob
-                })
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                fetchExperience();
-            }
-        } catch (error) {
-            console.error('Edit error:', error);
-        }
+    const handleEdit = (job) => {
+        setEditingJob(job);
+    };
+
+    const handleModalClose = () => {
+        setEditingJob(null);
+    };
+
+    const handleModalSave = () => {
+        setEditingJob(null);
+        fetchExperience();
     };
 
     return (
@@ -339,6 +447,14 @@ function Dashboard({ user, onLogout }) {
                     />
                 </div>
             </main>
+            
+            {editingJob && (
+                <EditExperienceModal
+                    job={editingJob}
+                    onClose={handleModalClose}
+                    onSave={handleModalSave}
+                />
+            )}
         </div>
     );
 }

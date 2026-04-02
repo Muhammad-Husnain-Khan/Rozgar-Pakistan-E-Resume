@@ -200,20 +200,31 @@ app.put('/api/updateExp/:expId', async (req, res) => {
         const expId = parseInt(req.params.expId);
         const { JobTitle, CompanyName, YearsWorked, IsCurrentJob } = req.body;
         
-        await pool.request()
+        // Validate required fields
+        if (!JobTitle || !CompanyName || YearsWorked === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields required: JobTitle, CompanyName, YearsWorked'
+            });
+        }
+        
+        // Call the sp_UpdateExperience stored procedure
+        const result = await pool.request()
             .input('ExpID', sql.Int, expId)
             .input('JobTitle', sql.VarChar(100), JobTitle)
             .input('CompanyName', sql.VarChar(100), CompanyName)
             .input('YearsWorked', sql.Int, YearsWorked)
             .input('IsCurrentJob', sql.Bit, IsCurrentJob ? 1 : 0)
-            .query(`
-                UPDATE Experience 
-                SET JobTitle = @JobTitle, 
-                    CompanyName = @CompanyName, 
-                    YearsWorked = @YearsWorked,
-                    IsCurrentJob = @IsCurrentJob
-                WHERE ExpID = @ExpID
-            `);
+            .execute('sp_UpdateExperience');
+        
+        const returnValue = result.returnValue;
+        
+        if (returnValue === -1) {
+            return res.status(400).json({
+                success: false,
+                message: 'The Job Title and Company Name combination already exists.'
+            });
+        }
         
         res.json({
             success: true,

@@ -95,16 +95,87 @@ BEGIN
     --     });
     --   };
     -- ========================================
-    
-    INSERT INTO Experience (UserID, JobTitle, CompanyName, YearsWorked, IsCurrentJob)
-    VALUES (@UserID, @JobTitle, @CompanyName, @YearsWorked, 0);
+    if exists(
+        select 1
+        from Experience
+        where @CompanyName=CompanyName
+        and
+        @JobTitle=JobTitle
+    )
+        begin
+            return -1
+        end
+    else
+        begin
+            INSERT INTO Experience (UserID, JobTitle, CompanyName, YearsWorked, IsCurrentJob)
+            VALUES (@UserID, @JobTitle, @CompanyName, @YearsWorked, 0);
     
     -- Return the newly created record to confirm insertion
-    SELECT 
-        'Experience added successfully!' AS Message,
-        SCOPE_IDENTITY() AS NewExpID;    -- Returns the ID of the new record
+            SELECT 
+            'Experience added successfully!' AS Message,
+            SCOPE_IDENTITY() AS NewExpID;    -- Returns the ID of the new record
+        end
 END;
 GO
+
+-- ============================================================================
+-- PROCEDURE 3: sp_UpdateExperience (UPDATE Operation)
+-- ============================================================================
+CREATE PROCEDURE sp_UpdateExperience
+    @ExpID INT,
+    @JobTitle VARCHAR(100),
+    @CompanyName VARCHAR(100),
+    @YearsWorked INT,
+    @IsCurrentJob BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Get UserID from the experience being updated
+    DECLARE @UserID INT;
+    SELECT @UserID = UserID FROM Experience WHERE ExpID = @ExpID;
+
+    -- Check if JobTitle + CompanyName combination exists for another record
+    -- (same UserID but different ExpID)
+    IF EXISTS (
+        SELECT 1 
+        FROM Experience 
+        WHERE UserID = @UserID 
+          AND ExpID <> @ExpID 
+          AND JobTitle = @JobTitle 
+          AND CompanyName = @CompanyName
+    )
+    BEGIN
+        -- Duplicate found - return -1
+        SELECT -1 AS ReturnValue;
+        RETURN -1;
+    END
+
+    -- No duplicate, proceed with update
+    UPDATE Experience
+    SET 
+        JobTitle = @JobTitle,
+        CompanyName = @CompanyName,
+        YearsWorked = @YearsWorked,
+        IsCurrentJob = @IsCurrentJob
+    WHERE ExpID = @ExpID;
+
+    -- Return success
+    SELECT 1 AS ReturnValue;
+    RETURN 1;
+END
+GO
+
+
+
+
+
+
+
+
+
+
+
 
 -- ============================================================================
 -- TEST THE PROCEDURES
